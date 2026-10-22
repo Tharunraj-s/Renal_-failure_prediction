@@ -1,0 +1,13 @@
+# Candidate dependencies inferred from inspected application; versions not verified.
+Flask
+Werkzeug
+numpy
+pandas
+torch
+ultralytics
+Pillow
+scikit-learn
+matplotlib
+seaborn
+jupyter
+import-ipynb
