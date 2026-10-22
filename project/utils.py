@@ -1,3 +1,4 @@
+from pathlib import Path
 import numpy as np
 import pandas as pd
 import torch
@@ -188,13 +189,16 @@ def preprocess_data(data,for_prediction=False):
         return X,biomarker_info
 
     
-def predict_labels(df=None,ImgTest=None):
+def predict_labels(df=None, ImgTest=None, result_path=None):
     
     #Model Load
-    ImgModel = YOLO('../best.pt')
-    BioMarker_path = 'trained_model2.pt'
+    root = Path(__file__).resolve().parent
+    ImgModel = YOLO(str(root / 'best.pt')) if ImgTest is not None else None
+    BioMarker_path = root / 'trained_model2.pt'
     Biomodel = KidneyCNN()
-    Biomodel.load_state_dict(torch.load(BioMarker_path))
+    Biomodel.load_state_dict(torch.load(BioMarker_path, map_location='cpu', weights_only=True))
+
+    Biomodel.eval()
 
     if df is None and ImgTest is None:
         prediction = "Please give the Image and BioMarker data"
@@ -218,14 +222,21 @@ def predict_labels(df=None,ImgTest=None):
         result=ImgModel(ImgTest, imgsz=640, conf=0.5)
 
         names = ImgModel.names
+        detected = []
+        prediction2 = 'No abnormality detected by this model'
         for r in result:
             for c in r.boxes.cls:
-                prediction2 =names[int(c)]
+                detected.append(names[int(c)])
+        if detected:
+            prediction2 = ", ".join(sorted(set(detected)))
         for r in result:
             im_array = r.plot()  # plot a BGR numpy array of predictions
             im = Image.fromarray(im_array[..., ::-1])  # RGB PIL image
             #im.show()  # show image
-            im.save('static/results/results.jpg')  # save image
+            if result_path is not None:
+                destination = Path(result_path)
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                im.save(destination)  # save image
         #print(prediction2)
 
     if ImgTest is None:
@@ -234,11 +245,7 @@ def predict_labels(df=None,ImgTest=None):
     if df is None:
         prediction1="Enter your Details"
 
-    try:
-        return prediction1, prediction2
-    except Exception as e:
-        prediction2 = "Normal"
-        return prediction1,prediction2
+    return prediction1, prediction2
 
 class KidneyCNN(nn.Module):
     def __init__(self, input_size=24, num_classes=2):

@@ -1,3 +1,7 @@
+# Historical pre-repair review
+
+This records the initial upload review. See [REPAIRS.md](REPAIRS.md) for fixes now applied, current entry points and remaining validation requirements.
+
 # Reproduction review
 
 The Flask entry point, utility module and fusion notebook were inspected. Inference and training were not executed; checkpoint compatibility is unverified.

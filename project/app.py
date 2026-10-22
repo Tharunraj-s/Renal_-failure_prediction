@@ -1,71 +1,76 @@
-from flask import Flask, render_template, request
-from werkzeug.utils import secure_filename
+from pathlib import Path
+from uuid import uuid4
+from tempfile import TemporaryDirectory
+import math
+from flask import Flask, render_template, request, abort
+from PIL import Image, UnidentifiedImageError
 import pandas as pd
-from utils import (load_data_predict,
-                   preprocess_data,
-                   predict_labels,
-                   save_user_input_to_csv,
-                   biomarker_questions)
+from utils import load_data_predict, preprocess_data, predict_labels, save_user_input_to_csv, biomarker_questions, column_mappings
 
-app = Flask(__name__)
-import os
+ROOT = Path(__file__).resolve().parent
+app = Flask(__name__, template_folder=str(ROOT / 'templates'), static_folder=str(ROOT / 'static'))
+app.config['MAX_CONTENT_LENGTH'] = 8 * 1024 * 1024
+RESULTS = ROOT / 'static' / 'results'
+
+
+def parse_answer(name, raw):
+    value = (raw or '').strip().lower()
+    if not value:
+        return None
+    if name in column_mappings:
+        mapping = column_mappings[name]
+        if value in mapping:
+            return mapping[value]
+        if value in ('0', '1'):
+            return int(value)
+        raise ValueError(f'Invalid value for {name}')
+    number = float(value)
+    if not math.isfinite(number) or number < 0:
+        raise ValueError(f'Invalid value for {name}')
+    return number
+
 
 @app.route('/')
 def index():
-    file_path = "static/results/results.jpg"
-    try:
-        if os.path.exists(file_path):
-            os.remove(file_path)
-    except Exception as e:
-        pass
     return render_template('index.html', biomarker_questions=biomarker_questions)
 
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    # Get user input for biomarkers
-    biomarkers = []
-    for biomarker in biomarker_questions.keys():
-        answer = request.form.get(biomarker)
-        # Check if the answer is None or empty
-        if answer is None or answer.strip() == '':
-            answer = None
-        else:
-            # Convert user input to the correct data type (e.g., float or int)
-            if answer.isdigit():
-                answer = float(answer)
-            elif answer in ['yes', 'poor', 'normal', 'present']:
-                answer = 1
-            elif answer in ['no', 'good', 'abnormal', 'not present']:
-                answer = 0
-        biomarkers.append(answer)
-
-    # Create a DataFrame from user input
-    biomarker_df = pd.DataFrame([biomarkers], columns=biomarker_questions.keys())
-
-    # Save the user input to a CSV file with specific column order
-    save_user_input_to_csv(biomarker_df, 'user_biomarkers.csv')
-
-    # Handle image upload
-    uploaded_file = request.files['file']
-    if uploaded_file.filename != '':
-        filename = secure_filename(uploaded_file.filename)
-        img_path = 'uploads/' + filename
-        uploaded_file.save(img_path)
-        image_uploaded= True
-    else:
-        img_path = None
-        image_uploaded = False
-
-    df = load_data_predict('user_biomarkers.csv')
-    df_, biomarker_info = preprocess_data(df, True)
-
-    # Make predictions using your `predict_labels` function
-    prediction_result = predict_labels(df_, img_path)
-
-    return render_template('result.html', prediction=prediction_result,
-                           biomarker_info=biomarker_info, image_uploaded=image_uploaded)
+    try:
+        values = {name: parse_answer(name, request.form.get(name)) for name in biomarker_questions}
+    except (ValueError, TypeError) as exc:
+        abort(400, description=str(exc))
+    if all(value is None for value in values.values()):
+        abort(400, description='Enter biomarker values before prediction.')
+    uploaded = request.files.get('file')
+    has_image = bool(uploaded and uploaded.filename)
+    token = uuid4().hex
+    result_file = RESULTS / f'{token}.jpg'
+    with TemporaryDirectory(prefix='renal-') as folder:
+        folder = Path(folder)
+        image_path = None
+        if has_image:
+            image_path = folder / 'scan.png'
+            try:
+                image = Image.open(uploaded.stream)
+                image.verify()
+                uploaded.stream.seek(0)
+                with Image.open(uploaded.stream) as image:
+                    image.convert('RGB').save(image_path)
+            except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError):
+                abort(400, description='Upload a valid supported image.')
+        csv_path = folder / 'biomarkers.csv'
+        save_user_input_to_csv(pd.DataFrame([values]), csv_path)
+        frame, biomarker_info = preprocess_data(load_data_predict(csv_path), True)
+        try:
+            prediction = predict_labels(frame, str(image_path) if image_path else None, result_file)
+        except Exception:
+            app.logger.exception('Model inference failed')
+            abort(503, description='Prediction unavailable. Check model files and server logs; no diagnosis was produced.')
+    return render_template('result.html', prediction=prediction, biomarker_info=biomarker_info,
+                           image_uploaded=has_image, result_image=f'results/{token}.jpg')
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)

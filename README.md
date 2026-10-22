@@ -1,3 +1,7 @@
+# Maintained implementation
+
+See [repairs and current run instructions](docs/REPAIRS.md) for the corrected entry points and validation limits. Historical notebook outputs are retained as experiment records; they are not results of the corrected implementation.
+
 # Renal Failure Prediction
 
 Academic prototype combining a 24-feature biomarker CNN with YOLO-based kidney-image analysis. The upload includes classical ML comparisons, PyTorch experiments, model checkpoints, figures and a Flask interface.

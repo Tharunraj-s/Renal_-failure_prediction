@@ -7,6 +7,7 @@
     <title>RENAL FAILURE DETECTION</title>
 </head>
 <body>
+<p>Research demonstration. Missing biomarkers use fixed defaults; predictions are not a clinical diagnosis.</p>
     <h1>RENAL FAILURE PREDICTION RESULT</h1>
 
     {% if prediction %}
@@ -40,7 +41,7 @@
 
                 {% if image_uploaded %}
                 <div class="image-box">
-                    <img src="{{ url_for('static', filename='results/results.jpg') }}" alt="Predicted Image">
+                    <img src="{{ url_for('static', filename=result_image) }}" alt="Predicted Image">
                 </div>
                 {% else %}
                 <div class="image-box no-image">
