@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="static/style.css">
+    <title>RENAL FAILURE DETECTION</title>
+</head>
+<body>
+    <h1>RENAL FAILURE DETECTION</h1>
+    <form action="/predict" method="post" enctype="multipart/form-data" class="form-container" id="multi-page-form">
+        <div class="form-column" id="page1">
+            <h2>Enter Biomarker Data:</h2>
+            {% for biomarker, question in biomarker_questions.items() %}
+                {% if biomarker not in ["red_blood_cells", "pus_cell", "pus_cell_clumps", "bacteria", "hypertension", "diabetes_mellitus", "coronary_artery_disease", "peda_edema", "anemia", "appetite"] %}
+                    <div class="form-row">
+                        <div class="question-column">
+                            <label>{{ question }}</label>
+                        </div>
+                        <input type="text" name="{{ biomarker }}" id="{{ biomarker }}">
+                    </div>
+                {% endif %}
+            {% endfor %}
+            <div class="button-container">
+                <button type="button" id="next-button" onclick="nextPage()">Next</button>
+            </div>
+        </div>
+
+        <div class="form-column" id="page2" style="display: none;">
+            <h2>Choose Options:</h2>
+            {% for biomarker, question in biomarker_questions.items() %}
+                {% if biomarker in ["red_blood_cells", "pus_cell", "pus_cell_clumps", "bacteria", "hypertension", "diabetes_mellitus", "coronary_artery_disease", "peda_edema", "anemia", "appetite"] %}
+                    <div class="form-row">
+                        <div class="question-column">
+                            <label>{{ question }}</label>
+                        </div>
+                        <div class="radio-buttons">
+                            {% if biomarker in ["red_blood_cells", "pus_cell"] %}
+                                <input type="radio" name="{{ biomarker }}" value="normal"> Normal
+                                <input type="radio" name="{{ biomarker }}" value="abnormal"> Abnormal
+                            {% elif biomarker in ["pus_cell_clumps", "bacteria"] %}
+                                <input type="radio" name="{{ biomarker }}" value="present"> Present
+                                <input type="radio" name="{{ biomarker }}" value="not present"> Not Present
+                            {% elif biomarker in ["hypertension", "diabetes_mellitus", "coronary_artery_disease", "peda_edema", "anemia"] %}
+                                <input type="radio" name="{{ biomarker }}" value="yes"> Yes
+                                <input type="radio" name="{{ biomarker }}" value="no"> No
+                            {% elif biomarker in ["appetite"] %}
+                                <input type="radio" name="{{ biomarker }}" value="good"> Good
+                                <input type="radio" name="{{ biomarker }}" value="poor"> Poor
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+            {% endfor %}
+            <div class="button-container">
+                <button type="button" id="back-button" onclick="previousPage()">Back</button>
+                <button type="button" id="next-button" onclick="nextPage()">Next</button>
+            </div>
+        </div>
+
+        <div class="form-column" id="page3" style="display: none;">
+            <h2>Upload the CT SCAN Image:</h2>
+            <input type="file" name="file" accept=".jpg, .jpeg, .png" placeholder="Choose an Image">
+            <div class="button-container">
+                <button type="button" id="back-button" onclick="previousPage()">Back</button>
+                <button type="submit" id="predict-button" style="display: none;">Predict</button>
+            </div>
+        </div>
+    </form>
+
+    <script src="static/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+    <title>RENAL FAILURE DETECTION</title>
+</head>
+<body>
+    <h1>RENAL FAILURE PREDICTION RESULT</h1>
+
+    {% if prediction %}
+        <div class="result-container">
+            <div class="left-column">
+                <div class="result-box">
+                    <h2>Biomarker Information:</h2>
+                    <ul class="biomarker-list">
+                        {% for biomarker_values in biomarker_info %}
+                        <li class="biomarker-item">
+                            <ul class="biomarker-details">
+                                {% for biomarker in biomarker_values %}
+                                <li class="biomarker-item">
+                                    <span class="biomarker-name">{{ biomarker.split(':')[0] }}</span>
+                                    <span class="biomarker-value">{{ biomarker.split(':')[1] }}</span>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            <div class="right-column">
+                <div class="prediction-container">
+                    <p class="prediction-label">From Bio-Markers: </p>
+                    <p class="prediction-result">{{ prediction[0][0] }}</p>
+                </div>
+                <h2>Predicted Image:</h2>
+
+                {% if image_uploaded %}
+                <div class="image-box">
+                    <img src="{{ url_for('static', filename='results/results.jpg') }}" alt="Predicted Image">
+                </div>
+                {% else %}
+                <div class="image-box no-image">
+                    <p>Image not uploaded</p>
+                </div>
+                    {% endif %}
+
+
+                <div class="prediction-container">
+                    <p class="prediction-label">From CT-Scan: </p>
+                    <p class="prediction-result">{{ prediction[1] }}</p>
+                </div>
+            </div>
+
+
+            </div>
+        </div>
+    {% endif %}
+
+</body>
+</html>

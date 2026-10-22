@@ -1,0 +1,8 @@
+              precision    recall  f1-score   support
+
+         CKD       0.96      0.98      0.97        52
+     Not CKD       0.96      0.93      0.95        28
+
+    accuracy                           0.96        80
+   macro avg       0.96      0.95      0.96        80
+weighted avg       0.96      0.96      0.96        80
